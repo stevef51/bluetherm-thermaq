@@ -1,0 +1,24 @@
+{
+  "name": "bluetherm-thermaq",
+  "version": "1.0.0",
+  "description": "BlueTherm ThermaQ Cordova library",
+  "cordova": {
+    "id": "bluetherm-thermaq",
+    "platforms": [
+      "ios",
+      "android"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://bitbucket.org/stevef51/bluetherm-thermaq.git"
+  },
+  "keywords": [
+    "ecosystem:cordova",
+    "cordova-ios",
+    "cordova-android"
+  ],
+  "author": "Steve Fillingham",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/stevef51/bluetherm-thermaq#readme"
+}
