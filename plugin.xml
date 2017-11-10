@@ -10,13 +10,13 @@
         <param name="ios-package" value="bluetherm-thermaq" />
       </feature>
     </config-file>
-    <source-file src="src/Library/libThermaLib.a" framework="true" />
-    <header-file src="src/Library/include/ThermaLib/ThermaLib.h"/>
-    <header-file src="src/Library/include/ThermaLib/TLDateStamp.h"/>
-    <header-file src="src/Library/include/ThermaLib/TLDevice.h"/>
-    <header-file src="src/Library/include/ThermaLib/TLSensor.h"/>
-    <header-file src="src/Library/include/ThermaLib/TLSimDevice.h"/>
-    <header-file src="src/Library/include/ThermaLib/TLSimSensor.h"/>
+    <source-file src="src/ios/Library/libThermaLib.a" framework="true" />
+    <header-file src="src/ios/Library/include/ThermaLib/ThermaLib.h"/>
+    <header-file src="src/ios/Library/include/ThermaLib/TLDateStamp.h"/>
+    <header-file src="src/ios/Library/include/ThermaLib/TLDevice.h"/>
+    <header-file src="src/ios/Library/include/ThermaLib/TLSensor.h"/>
+    <header-file src="src/ios/Library/include/ThermaLib/TLSimDevice.h"/>
+    <header-file src="src/ios/Library/include/ThermaLib/TLSimSensor.h"/>
     <source-file src="src/ios/bluetherm-thermaq.m" />
   </platform>
   <platform name="android">
@@ -27,7 +27,7 @@
     </config-file>
     <config-file parent="/*" target="AndroidManifest.xml">
     </config-file>
-    <resource-file src="src/thermalib-release.aar" target="libs/thermalib-release.aar" />
+    <resource-file src="src/android/thermalib-release.aar" target="libs/thermalib-release.aar" />
     <source-file src="src/android/bluetherm-thermaq.java" target-dir="src/bluetherm-thermaq/bluetherm-thermaq" />
   </platform>
 </plugin>
