@@ -2,12 +2,12 @@
 <plugin id="bluetherm-thermaq" version="1.0.0" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
   <name>bluetherm-thermaq</name>
   <js-module name="bluetherm-thermaq" src="www/bluetherm-thermaq.js">
-    <clobbers target="cordova.plugins.bluetherm-thermaq" />
+    <clobbers target="cordova.plugins.bluetherm_thermaq" />
   </js-module>
   <platform name="ios">
     <config-file parent="/*" target="config.xml">
       <feature name="bluetherm-thermaq">
-        <param name="ios-package" value="bluetherm-thermaq" />
+        <param name="ios-package" value="bluetherm_thermaq" />
       </feature>
     </config-file>
     <source-file src="src/ios/Library/libThermaLib.a" framework="true" />

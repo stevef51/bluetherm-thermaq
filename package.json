@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "BlueTherm ThermaQ Cordova library",
   "cordova": {
-    "id": "bluetherm-thermaq",
+    "id": "bluetherm.thermaq",
     "platforms": [
       "ios",
       "android"
