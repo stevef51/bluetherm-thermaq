@@ -1,5 +1,5 @@
 var exec = require('cordova/exec');
 
 exports.coolMethod = function(arg0, success, error) {
-    exec(success, error, "bluetherm_thermaq", "coolMethod", [arg0]);
+    exec(success, error, "BlueThermThermaQ", "coolMethod", [arg0]);
 };

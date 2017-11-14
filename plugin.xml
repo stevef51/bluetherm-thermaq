@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin id="bluetherm-thermaq" version="1.0.0" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
   <name>bluetherm-thermaq</name>
-  <js-module name="bluetherm-thermaq" src="www/bluetherm-thermaq.js">
-    <clobbers target="cordova.plugins.bluetherm_thermaq" />
+  <js-module name="bluetherm-thermaq" src="www/BlueThermThermaQ.js">
+    <clobbers target="cordova.plugins.BlueThermThermaQ" />
   </js-module>
   <platform name="ios">
     <config-file parent="/*" target="config.xml">
@@ -17,7 +17,7 @@
     <header-file src="src/ios/Library/include/ThermaLib/TLSensor.h"/>
     <header-file src="src/ios/Library/include/ThermaLib/TLSimDevice.h"/>
     <header-file src="src/ios/Library/include/ThermaLib/TLSimSensor.h"/>
-    <source-file src="src/ios/bluetherm-thermaq.m" />
+    <source-file src="src/ios/BlueThermThermaQ.m" />
   </platform>
   <platform name="android">
     <config-file parent="/*" target="res/xml/config.xml">
@@ -27,7 +27,8 @@
     </config-file>
     <config-file parent="/*" target="AndroidManifest.xml">
     </config-file>
+    <framework src="src/android/thermalib.gradle" custom="true" type="gradleReference" />
     <resource-file src="src/android/thermalib-release.aar" target="libs/thermalib-release.aar" />
-    <source-file src="src/android/bluetherm-thermaq.java" target-dir="src/bluetherm-thermaq/bluetherm-thermaq" />
+    <source-file src="src/android/BlueThermThermaQ.java" target-dir="src/BlueThermThermaQ" />
   </platform>
 </plugin>
