@@ -2,14 +2,14 @@
 
 #import <Cordova/CDV.h>
 
-@interface bluetherm-thermaq : CDVPlugin {
+@interface BlueThermThermaQ : CDVPlugin {
   // Member variables go here.
 }
 
 - (void)coolMethod:(CDVInvokedUrlCommand*)command;
 @end
 
-@implementation bluetherm-thermaq
+@implementation BlueThermThermaQ
 
 - (void)coolMethod:(CDVInvokedUrlCommand*)command
 {

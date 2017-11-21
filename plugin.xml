@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<plugin id="bluetherm-thermaq" version="1.0.0" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
-  <name>bluetherm-thermaq</name>
-  <js-module name="bluetherm-thermaq" src="www/BlueThermThermaQ.js">
+<plugin id="BlueThermThermaQ" version="1.0.0" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+  <name>BlueThermThermaQ</name>
+  <js-module name="BlueThermThermaQ" src="www/BlueThermThermaQ.js">
     <clobbers target="cordova.plugins.BlueThermThermaQ" />
   </js-module>
   <platform name="ios">
     <config-file parent="/*" target="config.xml">
-      <feature name="bluetherm-thermaq">
-        <param name="ios-package" value="bluetherm_thermaq" />
+      <feature name="BlueThermThermaQ">
+        <param name="ios-package" value="BlueThermThermaQ" />
       </feature>
     </config-file>
     <source-file src="src/ios/Library/libThermaLib.a" framework="true" />
@@ -21,8 +21,8 @@
   </platform>
   <platform name="android">
     <config-file parent="/*" target="res/xml/config.xml">
-      <feature name="bluetherm-thermaq">
-        <param name="android-package" value="bluetherm-thermaq.bluetherm-thermaq" />
+      <feature name="BlueThermThermaQ">
+        <param name="android-package" value="BlueThermThermaQ.BlueThermThermaQ" />
       </feature>
     </config-file>
     <config-file parent="/*" target="AndroidManifest.xml">
