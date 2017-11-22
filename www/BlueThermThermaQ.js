@@ -1,6 +1,21 @@
-var exec = require('cordova/exec');
+var cordova_exec = require('cordova/exec');
 
 var _module = "BlueThermThermaQ";
+
+var exec = function(success, error, module, method, args) {
+	console.log('Calling ' + method + ': ' + JSON.stringify(args));
+	cordova_exec(function(result) {
+		console.log('Success ' + method + ': ' + JSON.stringify(result));
+		if (success) {
+			success(result);
+		}
+	}, function(result) {
+		console.log('Error ' + method + ': ' + JSON.stringify(result));
+		if (error) {
+			error(result);
+		}
+	}, module, method, args);
+}
 
 function Device(deviceResult, client) {
 	Object.assign(this, deviceResult);
@@ -26,7 +41,11 @@ Device.prototype.measure = function(success, error) {
 
 Device.prototype.connect = function(success, error) {
 	var self = this;
-	exec(success, error, _module, "device_connect", [self.id]);
+	// We defer success until the device is actually Connected
+	if (success) {
+		this.$connect_success = success;
+	}
+	exec(null, error, _module, "device_connect", [self.id]);
 }
 
 Device.prototype.disconnect = function(success, error) {
@@ -39,9 +58,41 @@ Device.prototype.delete = function(success, error) {
 	exec(success, error, _module, "device_delete", [self.id]);
 }
 
-Device.prototype.setMeasurementInterval = function(intervalSeconds, success, error) {
+Device.prototype.configure = function(options, success, error) {
 	var self = this;
-	exec(success, error, _module, "device_setMeasurementInterval", [self.id, intervalSeconds]);
+
+	var makeOptions = function(device) {
+		var options = {
+			measurementMilliseconds: device.measurementMilliseconds,
+			autoOffSeconds: device.autoOffSeconds,
+			sensors: []
+		};
+
+		device.sensors.forEach(function(sensor) {
+			options.sensors.push({
+				index: sensor.index,
+				enabled: sensor.enabled,
+				lowAlarm: sensor.lowAlarm,
+				highAlarm: sensor.highAlarm,
+				trimValue: sensor.trimValue
+			});
+		});
+
+		return options;
+	}
+
+	if (options !== undefined) {
+		exec(function(device) {
+			Object.assign(self, device);
+			if (success) {
+				success(makeOptions(device));
+			}
+		}, error, _module, "device_configure", [self.id, options]);
+	} else {
+		if (success) {
+			success(makeOptions(this));
+		}
+	}
 }
 
 function Client() {
@@ -49,36 +100,79 @@ function Client() {
 }
 
 function updateDevice(deviceResult, client) {
-  var device = client.devices[deviceResult.id];
-  if (device === undefined) {
-    device = new Device(deviceResult, client);
-    client.devices[deviceResult.id] = device;
-  }
-  Object.assign(device, deviceResult);
-  return device;
+	var device = client.devices[deviceResult.id];
+	if (device === undefined) {
+		device = new Device(deviceResult, client);
+		client.devices[deviceResult.id] = device;
+	}
+	Object.assign(device, deviceResult);
+
+	if (device.connectionState != 'Connected') {
+		delete device.allReady;
+	}
+
+	if (typeof device.$connect_success === 'function') {
+		if (device.connectionState == 'Connected'
+		&& device.ready == true
+		&& device.isConnected == true) {
+			device.allReady = true;
+			device.$connect_success();
+			delete device.$connect_success;
+		}
+	}
+
+	return device;
 }
 
 Client.prototype.registerCallback = function(success, error) {
-  var self = this;
-  exec(function(result) {
-    if (result.device !== undefined) {
-      result.device = updateDevice(result.device, self);
-    }
+	var self = this;
+	exec(function(replies) {
+		// Replies can contain 1 or more Cordova result's
+		replies.forEach(function(result) {
+			if (result.device !== undefined) {
+				result.device = updateDevice(result.device, self);
+			}
 
-    switch (result.command) {
-      case "deviceDeleted":
-        var device = self.devices[result.deviceid];
-        if (device !== undefined) {
-          delete self.devices[result.deviceId];
-          result.device = device;
-        }
-        break;
-    }
+			switch (result.command) {
+				case "deviceDeleted":
+				var device = self.devices[result.deviceId];
+				if (device !== undefined) {
+					delete self.devices[result.deviceId];
+					result.device = device;
+				}
+				break;
 
-    if (success) {
-      success(result);
-    }
-  }, error, _module, "registerCallback");
+				case "scanComplete":
+				var deletedDevices = [];
+				for(var deviceId in self.devices) {
+					var device = self.devices[deviceId];
+					device.$keep = false;
+					result.devices.forEach(function(liveDevice) {
+						if (liveDevice.id == device.id) {
+							device.$keep = true;
+						}
+					})
+					if (!device.$keep) {
+						deletedDevices.push(device);
+					}
+					delete device.$keep;
+				}
+
+				deletedDevices.forEach(function(device) {
+					delete self.devices[device.id];
+				})
+
+				for(var i = 0 ; i < result.devices.length ; i++) {
+					result.devices[i] = updateDevice(result.devices[i], self);
+				}
+				break;
+			}
+
+			if (success) {
+				success(result);
+			}
+		});
+	}, error, _module, "registerCallback");
 }
 
 Client.prototype.startScan = function (timeout, success, error) {
@@ -91,16 +185,20 @@ Client.prototype.stopScan = function (success, error) {
 }
 
 Client.prototype.getDeviceList = function (success, error) {
-  var self = this;
-  exec(function(result) {
-    for(var i = 0 ; i < result.devices.length ; i++) {
-      result.devices[i] = updateDevice(result.devices[i], self);
-    }
+	var self = this;
+	exec(function(result) {
+		for(var i = 0 ; i < result.devices.length ; i++) {
+			result.devices[i] = updateDevice(result.devices[i], self);
+		}
 
-    if (success) {
-      success(result);
-    }
-  }, error, _module, "getDeviceList", []);
+		if (success) {
+			success(result);
+		}
+	}, error, _module, "getDeviceList", []);
+}
+
+Client.prototype.getVersion = function(success, error) {
+	exec(success, error, _module, "getVersion");
 }
 
 exports.Client = Client;
