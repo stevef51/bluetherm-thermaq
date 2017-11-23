@@ -163,7 +163,7 @@ NSString* stringFromTLSensorType(TLSensorType sensorType) {
 NSMutableDictionary* MakeJSONSensor(id<TLSensor> sensor)
 {
 	NSMutableDictionary* info = [[NSMutableDictionary alloc] init];
-	[info setObject: [NSNumber numberWithUnsignedInteger: sensor.index] forKey: @"index"];
+	[info setObject: [NSNumber numberWithUnsignedInteger: sensor.index - 1] forKey: @"index"];      // Android index is 0-based
 
 	NSString* name = [sensor name];
 	if (name != nil && name.length)
@@ -184,7 +184,7 @@ NSMutableDictionary* MakeJSONSensor(id<TLSensor> sensor)
 	[info setObject: [NSNumber numberWithBool: sensor.fault] forKey: @"fault"];
 	[info setObject: [NSNumber numberWithDouble: sensor.trimValue] forKey: @"trimValue"];
 
-	return info;
+    return info;
 }
 
 NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
@@ -246,7 +246,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 @property (nonatomic, retain) NSString* eventCallbackId;
 @property (nonatomic, retain) NSArray* lastDeviceList;
 @property (nonatomic, retain) NSMutableArray* scanDeviceList;
-@property (nonatomic, retain) NSMutableArray* updateBlocks;
+@property (nonatomic, retain) NSMutableDictionary* updateBlocks;
 
 - (void)pluginInitialize;
 - (void)dispose;
@@ -286,7 +286,17 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 	[nc addObserver:self selector:@selector(onRssiUpdated:) name:ThermaLibRSSINotificationName object:nil];
 
 	self.thermaLib = [ThermaLib sharedInstance];
-    self.updateBlocks = [[NSMutableArray alloc] init];
+    self.updateBlocks = [[NSMutableDictionary alloc] init];
+}
+
+-(void) queueUpdateBlock:(FnUpdate) fn forDevice:(id<TLDevice>) device
+{
+    NSMutableArray* fns = [updateBlocks objectForKey:device.deviceIdentifier];
+    if (fns == nil) {
+        fns = [[NSMutableArray alloc] init];
+        [updateBlocks setObject:fns forKey:device.deviceIdentifier];
+    }
+    [fns addObject:fn];
 }
 
 -(void)dispose
@@ -606,10 +616,10 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 			[device refresh];
 
             __weak BlueThermThermaQ* weakSelf = self;
-            [self.updateBlocks addObject:^{
+            [self queueUpdateBlock:^{
                 CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_OK messageAsDictionary:MakeJSONDevice(device)];
                 [weakSelf.commandDelegate sendPluginResult: pluginResult callbackId: command.callbackId];
-            }];
+            } forDevice:device];
 		}
 	}
 
@@ -690,7 +700,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
                     break;
                 }
 
-                id<TLSensor> sensor = [device sensorAtIndex: [index intValue]];
+                id<TLSensor> sensor = [device sensorAtIndex: [index intValue] + 1];     // sensorAtIndex is 1-based
                 if (sensor == nil) {
                     pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsString: @"Sensor not found"];
                     break;
@@ -730,10 +740,10 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 
         if (pluginResult == nil) {
             __weak BlueThermThermaQ* weakSelf = self;
-            [self.updateBlocks addObject:^{
+            [self queueUpdateBlock:^{
                 CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_OK messageAsDictionary:MakeJSONDevice(device)];
                 [weakSelf.commandDelegate sendPluginResult: pluginResult callbackId: callbackId];
-            }];
+            } forDevice:device];
         } else {
             [self.commandDelegate sendPluginResult: pluginResult callbackId: callbackId];
         }
@@ -883,10 +893,13 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 
     [self deviceResult: device];
 
-    for(FnUpdate fn in self.updateBlocks) {
-        fn();
+    NSArray* fns = [updateBlocks objectForKey:device.deviceIdentifier];
+    if (fns != nil) {
+        for(FnUpdate fn in fns) {
+            fn();
+        }
+        [self.updateBlocks removeObjectForKey:device.deviceIdentifier];
     }
-    [self.updateBlocks removeAllObjects];
 }
 
 - (void)onSensorUpdated:(NSNotification *)sender

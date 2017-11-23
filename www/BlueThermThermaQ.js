@@ -21,7 +21,6 @@ function Device(deviceResult, client) {
 	Object.assign(this, deviceResult);
 	// Parent reference via function prevents JSON.stringify circular reference loops
 	this.client = function() { return client; }
-	this.connected = false;
 }
 
 Device.prototype.refresh = function(success, error) {
@@ -109,13 +108,10 @@ function updateDevice(deviceResult, client) {
 
 	if (device.connectionState != 'Connected') {
 		delete device.allReady;
-	}
 
-	if (typeof device.$connect_success === 'function') {
-		if (device.connectionState == 'Connected'
-		&& device.ready == true
-		&& device.isConnected == true) {
-			device.allReady = true;
+	} else if (device.connectionState == 'Connected' && device.ready == true && device.isConnected == true) {
+		device.allReady = true;
+		if (typeof device.$connect_success === 'function') {
 			device.$connect_success();
 			delete device.$connect_success;
 		}

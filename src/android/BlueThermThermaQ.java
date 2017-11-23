@@ -12,6 +12,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import uk.co.etiltd.thermalib.Device;
@@ -30,6 +32,19 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 	private ThermaLib _thermaLib;
 	private Object _registerHandle;
 	private CallbackContext _callbackContext;
+	private HashMap<Device, ArrayList<Runnable>> _updateBlocks = new HashMap<Device, ArrayList<Runnable>>();
+
+	// Queue a runnable on the next deviceUpdate from specific device
+	private void queueUpdateBlock(Device device, Runnable runnable) {
+		ArrayList<Runnable> fns = null;
+		if (!_updateBlocks.containsKey(device)) {
+			fns = new ArrayList<Runnable>();
+			_updateBlocks.put(device, fns);
+		} else {
+			fns = _updateBlocks.get(device);
+		}
+		fns.add(runnable);
+	}
 
 	@Override
 	public void initialize(CordovaInterface cordova, CordovaWebView webView) {
@@ -39,37 +54,41 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 		_registerHandle = _thermaLib.registerCallbacks(this, "BlueThermThermaQ");
 	}
 
-	private static JSONObject MakeJSONDevice(Device device) throws JSONException
+	private static JSONObject MakeJSONDevice(Device device)
 	{
 		JSONObject jobj = new JSONObject();
-		jobj.put("id", device.getDeviceAddress());
-		if (!device.getDeviceName().isEmpty())
-		jobj.put("name", device.getDeviceName());
-		if (!device.getSerialNumber().isEmpty())
-		jobj.put("serialNumber", device.getSerialNumber());
-		jobj.put("connectionState", device.getConnectionState());
-		jobj.put("batteryLevel", device.getBatteryLevel());
-		if (!device.getModelNumber().isEmpty())
-		jobj.put("modelNumber", device.getModelNumber());
-		if (!device.getManufacturerName().isEmpty())
-		jobj.put("manufacturerName", device.getManufacturerName());
-		jobj.put("rssi", device.getRssi());
-		if (!device.getSoftwareRevision().isEmpty())
-		jobj.put("softwareRevision", device.getSoftwareRevision());
-		if (!device.getHardwareRevision().isEmpty())
-		jobj.put("hardwareRevision", device.getHardwareRevision());
-		if (!device.getFirmwareRevision().isEmpty())
-		jobj.put("firmwareRevision", device.getFirmwareRevision());
-		jobj.put("measurementMilliseconds", device.getMeasurementInterval() * 1000);
-		jobj.put("autoOffSeconds", device.getAutoOffInterval() * 60);
-		jobj.put("ready", device.isReady());
-		jobj.put("isConnected", device.isConnected());
+		try {
+			jobj.put("id", device.getDeviceAddress());
+			if (!device.getDeviceName().isEmpty())
+				jobj.put("name", device.getDeviceName());
+			if (!device.getSerialNumber().isEmpty())
+				jobj.put("serialNumber", device.getSerialNumber());
+			jobj.put("connectionState", device.getConnectionState());
+			jobj.put("batteryLevel", device.getBatteryLevel());
+			if (!device.getModelNumber().isEmpty())
+				jobj.put("modelNumber", device.getModelNumber());
+			if (!device.getManufacturerName().isEmpty())
+				jobj.put("manufacturerName", device.getManufacturerName());
+			jobj.put("rssi", device.getRssi());
+			if (!device.getSoftwareRevision().isEmpty())
+				jobj.put("softwareRevision", device.getSoftwareRevision());
+			if (!device.getHardwareRevision().isEmpty())
+				jobj.put("hardwareRevision", device.getHardwareRevision());
+			if (!device.getFirmwareRevision().isEmpty())
+				jobj.put("firmwareRevision", device.getFirmwareRevision());
+			jobj.put("measurementMilliseconds", device.getMeasurementInterval() * 1000);
+			jobj.put("autoOffSeconds", device.getAutoOffInterval() * 60);
+			jobj.put("ready", device.isReady());
+			jobj.put("isConnected", device.isConnected());
 
-		JSONArray jSensors = new JSONArray();
-		for (Sensor sensor: device.getSensors()) {
-			jSensors.put(MakeJSONSensor(sensor));
+			JSONArray jSensors = new JSONArray();
+			for (Sensor sensor : device.getSensors()) {
+				jSensors.put(MakeJSONSensor(sensor));
+			}
+			jobj.put("sensors", jSensors);
+		} catch (JSONException je) {
+
 		}
-		jobj.put("sensors", jSensors);
 
 		return jobj;
 	}
@@ -174,7 +193,7 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 			if (args.length() >= 1) {
 				String deviceId = args.getString(0);
 				if (args.length() >= 2) {
-					JSONObject options = args.get(1);
+					JSONObject options = args.getJSONObject(1);
 					this.device_configure(deviceId, options, callbackContext);
 				} else {
 					callbackContext.error("options required");
@@ -193,19 +212,19 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 		return false;
 	}
 
-	private void device_configure(String deviceId, JSONObject options, CallbackContext callbackContext) throws JSONException {
-		Device device = _thermaLib.getDeviceWithAddress(deviceId);
+	private void device_configure(String deviceId, JSONObject options, final CallbackContext callbackContext) throws JSONException {
+		final Device device = _thermaLib.getDeviceWithAddress(deviceId);
 		if (device == null) {
 			callbackContext.error("Device not found");
 		} else if (!device.isConnected()) {
 			callbackContext.error("Device not connected");
 		} else {
 			if (options.has("measurementMilliseconds")) {
-				device.setMeasurementInterval((options.getInt("measurementMilliseconds") * 1000 - 1) / 1000);	 // Round up
+				device.setMeasurementInterval((options.getInt("measurementMilliseconds") + 1000 - 1) / 1000);	 // Round up
 			}
 
 			if (options.has("autoOffSeconds")) {
-				device.setAutoOffInterval((options.getInt("autoOffSeconds") * 60 - 1) / 60);	// Round up
+				device.setAutoOffInterval((options.getInt("autoOffSeconds") + 60 - 1) / 60);	// Round up
 			}
 
 			if (options.has("sensors")) {
@@ -217,7 +236,7 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 						return;
 					}
 
-					Sensor sensor = device.getSensor(sensorConfig.getInt("index") - 1);		// 0 based
+					Sensor sensor = device.getSensor(sensorConfig.getInt("index"));		// 0 based
 					if (sensor == null) {
 						callbackContext.error("Sensor not found");
 						return;
@@ -248,9 +267,16 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 					}
 				}
 			}
-			callbackContext.success(MakeJSONDevice(device));
+
+			queueUpdateBlock(device, new Runnable() {
+				@Override
+				public void run() {
+					callbackContext.success(MakeJSONDevice(device));
+				}
+			});
 		}
 	}
+
 	private void device_measure(String deviceId, CallbackContext callbackContext) throws JSONException {
 		Device device = _thermaLib.getDeviceWithAddress(deviceId);
 		if (device == null) {
@@ -275,15 +301,21 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 		}
 	}
 
-	private void device_refresh(String deviceId, CallbackContext callbackContext) throws JSONException {
-		Device device = _thermaLib.getDeviceWithAddress(deviceId);
+	private void device_refresh(String deviceId, final CallbackContext callbackContext) throws JSONException {
+		final Device device = _thermaLib.getDeviceWithAddress(deviceId);
 		if (device == null) {
 			callbackContext.error("Device not found");
 		} else if (!device.isConnected()) {
 			callbackContext.error("Device not connected");
 		} else {
 			device.refresh();
-			callbackContext.success();
+
+			queueUpdateBlock(device, new Runnable() {
+				@Override
+				public void run() {
+					callbackContext.success(MakeJSONDevice(device));
+				}
+			});
 		}
 	}
 
@@ -454,6 +486,14 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 	@Override
 	public void onDeviceUpdated(Device device, long timestamp) {
 		deviceResult(device, "deviceUpdated");
+
+		ArrayList<Runnable> fns = _updateBlocks.get(device);
+		if (fns != null) {
+			for(Runnable r : fns) {
+				r.run();
+			}
+			_updateBlocks.remove(device);
+		}
 	}
 
 	@Override
