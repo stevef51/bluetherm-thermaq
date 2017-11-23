@@ -262,7 +262,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 - (void)device_measure:(CDVInvokedUrlCommand*) command;
 - (void)device_delete:(CDVInvokedUrlCommand*) command;
 - (void)device_refresh:(CDVInvokedUrlCommand*) command;
-- (void)device_setMeasurementInterval:(CDVInvokedUrlCommand*) command;
+- (void)device_configure:(CDVInvokedUrlCommand*) command;
 @end
 
 @implementation BlueThermThermaQ
@@ -779,8 +779,18 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 
 		} else {
             NSMutableDictionary* args = [[NSMutableDictionary alloc] init];
-            [args setObject:[NSNumber numberWithInteger:10] forKey:@"tryCount"];
-            [args setObject:[NSNumber numberWithDouble:0.5] forKey:@"retryInterval"];
+			NSNumber* tryCount = [options objectForKey: @"tryCount"];
+			if (tryCount == nil) {
+				tryCount = [NSNumber numberWithInteger:10];
+			}
+			[args setObject:tryCount forKey:@"tryCount"];
+
+			NSNumber* retryInterval = [options objectForKey: @"retryInterval"];
+			if (retryInterval == nil) {
+				retryInterval = [NSNumber numberWithDouble:0.5];
+			}
+			[args setObject:retryInterval forKey:@"retryInterval"];
+
             [args setObject:command.callbackId forKey:@"callbackId"];
             [args setObject:device forKey:@"device"];
             [args setObject:options forKey:@"options"];
