@@ -385,8 +385,8 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 		callbackContext.sendPluginResult(result);
 	}
 
-	private void startScan(int timeout, CallbackContext callbackContext) {
-		if (_thermaLib.startScanForDevices(timeout)) {
+	private void startScan(int timeoutMilliseconds, CallbackContext callbackContext) {
+		if (_thermaLib.startScanForDevices((timeoutMilliseconds + 1000 - 1) / 1000) {
 			callbackContext.success();
 		} else {
 			callbackContext.error("startScan failed");

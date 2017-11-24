@@ -424,13 +424,13 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 {
 	NSLog(@"startScan:");
 	CDVPluginResult* pluginResult = nil;
-	NSNumber* timeout = nil;
+	NSNumber* timeoutMilliseconds = nil;
 
 	if (command.arguments.count >= 1) {
 		timeout = [command.arguments objectAtIndex:0];
 	}
 
-	if (timeout == nil) {
+	if (timeoutMilliseconds == nil) {
 		pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsString: @"timeout required"];
 	}
 
@@ -450,7 +450,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 
 		[thermaLib startDeviceScan];
 
-		[self performSelector:@selector(startScanTimeout) withObject:nil afterDelay:[timeout intValue]];
+		[self performSelector:@selector(startScanTimeout) withObject:nil afterDelay:[timeoutMilliseconds doubleValue] / 1000.0];
 
 		pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_OK];
 	}
