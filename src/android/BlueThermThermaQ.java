@@ -123,11 +123,12 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 			this.registerCallback(callbackContext);
 			return true;
 		} else if (action.equals("startScan")) {
-			int timeout = 10;
 			if (args.length() >= 1) {
-				timeout = args.getInt(0);
+				int timeoutMilliseconds = args.getInt(0);
+				this.startScan(timeoutMilliseconds, callbackContext);
+			} else {
+				callbackContext.error("timeout required");
 			}
-			this.startScan(timeout, callbackContext);
 			return true;
 		} else if (action.equals("stopScan")) {
 			this.stopScan(callbackContext);

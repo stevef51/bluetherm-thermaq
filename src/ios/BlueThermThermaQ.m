@@ -427,7 +427,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 	NSNumber* timeoutMilliseconds = nil;
 
 	if (command.arguments.count >= 1) {
-		timeout = [command.arguments objectAtIndex:0];
+		timeoutMilliseconds = [command.arguments objectAtIndex:0];
 	}
 
 	if (timeoutMilliseconds == nil) {
