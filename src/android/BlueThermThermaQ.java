@@ -286,7 +286,13 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 			callbackContext.error("Device not connected");
 		} else {
 			device.sendCommand(Device.CommandType.MEASURE, null);
-			callbackContext.success();
+
+			queueUpdateBlock(device, new Runnable() {
+				@Override
+				public void run() {
+					callbackContext.success(MakeJSONDevice(device));
+				}
+			});
 		}
 	}
 
@@ -387,7 +393,7 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 	}
 
 	private void startScan(int timeoutMilliseconds, CallbackContext callbackContext) {
-		if (_thermaLib.startScanForDevices((timeoutMilliseconds + 1000 - 1) / 1000) {
+		if (_thermaLib.startScanForDevices((timeoutMilliseconds + 1000 - 1) / 1000)) {
 			callbackContext.success();
 		} else {
 			callbackContext.error("startScan failed");
