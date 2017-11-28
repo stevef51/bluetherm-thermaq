@@ -60,6 +60,7 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 			// Client will consume the array
 			methods.remove(method);
 		}
+		return fns;
 	}
 
 	private void queueUpdate(String deviceId, String method, Runnable runnable) {
