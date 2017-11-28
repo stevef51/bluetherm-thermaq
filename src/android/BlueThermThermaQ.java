@@ -32,17 +32,38 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 	private ThermaLib _thermaLib;
 	private Object _registerHandle;
 	private CallbackContext _callbackContext;
-	private HashMap<Device, ArrayList<Runnable>> _updateBlocks = new HashMap<Device, ArrayList<Runnable>>();
+	private HashMap<String, HashMap<String, ArrayList<Runnable>>> _deviceCallbacks = new HashMap<String, HashMap<String, ArrayList<Runnable>>>();
 
 	// Queue a runnable on the next deviceUpdate from specific device
-	private void queueUpdateBlock(Device device, Runnable runnable) {
-		ArrayList<Runnable> fns = null;
-		if (!_updateBlocks.containsKey(device)) {
-			fns = new ArrayList<Runnable>();
-			_updateBlocks.put(device, fns);
+	private ArrayList<Runnable> getQueue(String deviceId, String method, boolean createIfNeeded) {
+		HashMap<String, ArrayList<Runnable>> methods = null;
+		if (!_deviceCallbacks.containsKey(deviceId)) {
+			if (!createIfNeeded) {
+				return null;
+			}
+			methods = new HashMap<String, ArrayList<Runnable>>();
+			_deviceCallbacks.put(deviceId, methods);
 		} else {
-			fns = _updateBlocks.get(device);
+			methods = _deviceCallbacks.get(deviceId);
 		}
+		ArrayList<Runnable> fns = null;
+		if (!methods.containsKey(method)) {
+			if (!createIfNeeded) {
+				return null;
+			}
+			fns = new ArrayList<Runnable>();
+			methods.put(method, fns);
+		} else {
+			fns = methods.get(method);
+		}
+		if (!createIfNeeded) {
+			// Client will consume the array
+			methods.remove(method);
+		}
+	}
+
+	private void queueUpdate(String deviceId, String method, Runnable runnable) {
+		ArrayList<Runnable> fns = getQueue(deviceId, method, true);
 		fns.add(runnable);
 	}
 
@@ -269,7 +290,7 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 				}
 			}
 
-			queueUpdateBlock(device, new Runnable() {
+			queueUpdate(device.getDeviceAddress(), "deviceUpdated", new Runnable() {
 				@Override
 				public void run() {
 					callbackContext.success(MakeJSONDevice(device));
@@ -278,8 +299,8 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 		}
 	}
 
-	private void device_measure(String deviceId, CallbackContext callbackContext) throws JSONException {
-		Device device = _thermaLib.getDeviceWithAddress(deviceId);
+	private void device_measure(String deviceId, final CallbackContext callbackContext) throws JSONException {
+		final Device device = _thermaLib.getDeviceWithAddress(deviceId);
 		if (device == null) {
 			callbackContext.error("Device not found");
 		} else if (!device.isConnected()) {
@@ -287,7 +308,7 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 		} else {
 			device.sendCommand(Device.CommandType.MEASURE, null);
 
-			queueUpdateBlock(device, new Runnable() {
+			queueUpdate(device.getDeviceAddress(), "deviceUpdated", new Runnable() {
 				@Override
 				public void run() {
 					callbackContext.success(MakeJSONDevice(device));
@@ -317,7 +338,7 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 		} else {
 			device.refresh();
 
-			queueUpdateBlock(device, new Runnable() {
+			queueUpdate(device.getDeviceAddress(), "deviceUpdated", new Runnable() {
 				@Override
 				public void run() {
 					callbackContext.success(MakeJSONDevice(device));
@@ -494,12 +515,11 @@ public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientC
 	public void onDeviceUpdated(Device device, long timestamp) {
 		deviceResult(device, "deviceUpdated");
 
-		ArrayList<Runnable> fns = _updateBlocks.get(device);
+		ArrayList<Runnable> fns = getQueue(device.getDeviceAddress(), "deviceUpdated", false);
 		if (fns != null) {
 			for(Runnable r : fns) {
 				r.run();
 			}
-			_updateBlocks.remove(device);
 		}
 	}
 
