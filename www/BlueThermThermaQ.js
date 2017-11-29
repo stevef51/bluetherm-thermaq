@@ -1,20 +1,24 @@
 var cordova_exec = require('cordova/exec');
+var exec = cordova_exec;
 
 var _module = "BlueThermThermaQ";
 
-var exec = function(success, error, module, method, args) {
-	console.log('Calling ' + method + ': ' + JSON.stringify(args));
-	cordova_exec(function(result) {
-		console.log('Success ' + method + ': ' + JSON.stringify(result));
-		if (success) {
-			success(result);
-		}
-	}, function(result) {
-		console.log('Error ' + method + ': ' + JSON.stringify(result));
-		if (error) {
-			error(result);
-		}
-	}, module, method, args);
+var debugExec = false;
+if (debugExec) {
+	exec = function(success, error, module, method, args) {
+		console.log('Calling ' + method + ': ' + JSON.stringify(args));
+		cordova_exec(function(result) {
+			console.log('Success ' + method + ': ' + JSON.stringify(result));
+			if (success) {
+				success(result);
+			}
+		}, function(result) {
+			console.log('Error ' + method + ': ' + JSON.stringify(result));
+			if (error) {
+				error(result);
+			}
+		}, module, method, args);
+	}
 }
 
 function Device(deviceResult, client) {
