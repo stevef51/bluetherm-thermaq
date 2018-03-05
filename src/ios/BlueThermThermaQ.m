@@ -5,25 +5,25 @@
 #import "TLDevice.h"
 #import "TLSensor.h"
 
-#define PLUGIN_VERSION @"1.0.0"
+#define PLUGIN_VERSION @"1.1.0"
 
 typedef void (^FnUpdate)(void);
 
 /// Note, these toStrings are taken from Android library decompile to stay 100% compatible with Droid plugin
 NSString* stringFromTLDeviceType(TLDeviceType deviceType) {
     switch(deviceType) {
-        case TLDeviceTypeLEProbe:
-        return @"LEProbe";
-        case TLDeviceTypeQBlue:
-        return @"QBlue";
-        case TLDeviceTypeLEDuo:
-        return @"LEDuo";
-        case TLDeviceTypeClassicProbe:
-        return @"ClassicProbe";
-        case TLDeviceTypeClassidDuo:
-        return @"ClassicDuo";
-        case TLDeviceTypeWiFi:
-        return @"Wifi";
+        case TLDeviceTypeThermaDataWiFi:
+        return @"ThermaDataWifi";
+        case TLDeviceTypeThermaPenBlue:
+        return @"ThermaPenBlue";
+        case TLDeviceTypeBlueThermOne:
+        return @"BlueThermOne";
+        case TLDeviceTypeThermaQWiFi:
+        return @"ThermaQWiFi";
+        case TLDeviceTypeThermaQBlue:
+        return @"ThermaQBlue";
+        case TLDeviceTypeRayTempBlue:
+        return @"RayTempBlue";
         default:
         return @"Unknown";
     }
@@ -33,8 +33,8 @@ NSString* stringFromTLTransport(TLTransport transport) {
     switch(transport) {
         case TLTransportBluetoothLE:
         return @"BluetoothLE";
-        case TLTransportWifi:
-        return @"Wifi";
+        case TLTransportCloudService:
+        return @"CloudService";
         case TLTransportSimulated:
         return @"Simulated";
         default:
@@ -131,9 +131,6 @@ NSString* stringFromTLSensorType(TLSensorType sensorType) {
         case TLSensorTypeExternalThermistor:
         return @"External Thermistor";
 
-        case TLSensorTypeIRSensor:
-        return @"IRSensor";
-
         case TLSensorTypeKThermocouple:
         return @"Type K Thermocouple";
 
@@ -154,6 +151,15 @@ NSString* stringFromTLSensorType(TLSensorType sensorType) {
 
         case TLSensorTypeMoistureSensor:
         return @"Moisture Sensor";
+
+        case TLSensorTypeExternalThermistorConnector:
+        return @"External Thermistor Connector";
+
+        case TLSensorTypeKThermocoupleFixed:
+        return @"Type K Thermocouple Fixed";
+
+        case TLSensorTypeInfraredType1:
+        return @"Infrared Type 1";
 
         default:
         return @"Unknown";
@@ -284,6 +290,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
     [nc addObserver:self selector:@selector(onDeviceUpdated:) name:ThermaLibDeviceUpdatedNotificationName object:nil];
     [nc addObserver:self selector:@selector(onSensorUpdated:) name:ThermaLibSensorUpdatedNotificationName object:nil];
     [nc addObserver:self selector:@selector(onRssiUpdated:) name:ThermaLibRSSINotificationName object:nil];
+    [nc addObserver:self selector:@selector(onDeviceDeleted:) name:ThermaLibDeviceDeletedNotificationName  object:nil];
 
     self.thermaLib = [ThermaLib sharedInstance];
     self.deviceCallbacks = [[NSMutableDictionary alloc] init];
@@ -478,7 +485,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
             }
         }
 
-        [thermaLib startDeviceScan];
+        [thermaLib startDeviceScanWithTransport: TLTransportBluetoothLE];
 
         [self performSelector:@selector(startScanTimeout) withObject:nil afterDelay:[timeoutMilliseconds doubleValue] / 1000.0];
 
@@ -706,7 +713,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
             [thermaLib removeDevice: device];
 
             // Simulate the Droid "onDeviceDeleted" event since iOS ThermaLib does not generate this event
-            [self.commandDelegate runInBackground: ^{
+/*            [self.commandDelegate runInBackground: ^{
                 NSMutableArray* replies = [[NSMutableArray alloc] init];
                 NSMutableDictionary* msg = [[NSMutableDictionary alloc] init];
                 [msg setObject: @"deviceDeleted" forKey: @"command"];
@@ -718,7 +725,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 
                 [self.commandDelegate sendPluginResult: eventResult callbackId: self.eventCallbackId];
             }];
-
+*/
             pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_OK];
         }
     }
@@ -882,31 +889,59 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 
 - (void)onNewDevice:(NSNotification *)sender
 {
-    // Notification (for some stupid reason) does not actually contain the New Device !!
-    // So we have to figure out which device is new by comparing old device list and new device list
     NSMutableArray* replies = [[NSMutableArray alloc] init];
-    for(id<TLDevice> find in thermaLib.deviceList) {
-        if (![self.lastDeviceList containsObject:find]) {
-            id<TLDevice> device = find;
-            NSLog(@"onNewDevice: %@", device.deviceName);
+    id<TLDevice> device = [sender object];
+    if (device == NULL) {
+        NSLog(@"onNewDevice: NULL DEVICE !!");
+        return;
+    }
+    NSLog(@"onNewDevice: %@", device.deviceName);
+    NSMutableDictionary* msg = [[NSMutableDictionary alloc] init];
+    [msg setObject: @"newDevice" forKey: @"command"];
+    [msg setObject: MakeJSONDevice(device) forKey: @"device"];
 
-            NSMutableDictionary* msg = [[NSMutableDictionary alloc] init];
-            [msg setObject: @"newDevice" forKey: @"command"];
-            [msg setObject: MakeJSONDevice(device) forKey: @"device"];
+    [replies addObject:msg];
 
-            [replies addObject:msg];
+    [self.scanDeviceList addObject:device];
 
-            [self.scanDeviceList addObject:device];
-
-            NSArray* fns = [self queueForDeviceId:device.deviceIdentifier withMethod:@"newDevice" createIfNeeded:FALSE];
-            if (fns != nil) {
-                for(FnUpdate fn in fns) {
-                    fn();
-                }
-            }
+    NSArray* fns = [self queueForDeviceId:device.deviceIdentifier withMethod:@"newDevice" createIfNeeded:FALSE];
+    if (fns != nil) {
+        for(FnUpdate fn in fns) {
+            fn();
         }
     }
 
+    self.lastDeviceList = [[thermaLib deviceList] copy];
+
+    CDVPluginResult* eventResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_OK messageAsArray:replies];
+    [eventResult setKeepCallbackAsBool: TRUE];
+
+    [self.commandDelegate sendPluginResult: eventResult callbackId: self.eventCallbackId];
+}
+
+- (void)onDeviceDeleted:(NSNotification *)sender
+{
+    NSMutableArray* replies = [[NSMutableArray alloc] init];
+    id<TLDevice> device = [sender object];
+    if (device == NULL) {
+        NSLog(@"onDeviceDeleted: NULL DEVICE !!");
+        return;
+    }
+    NSLog(@"onDeviceDeleted: %@", device.deviceName);
+    NSMutableDictionary* msg = [[NSMutableDictionary alloc] init];
+    [msg setObject: @"deviceDeleted" forKey: @"command"];
+    [msg setObject: device.deviceIdentifier forKey: @"deviceId"];
+
+    [replies addObject:msg];
+
+/*
+    NSArray* fns = [self queueForDeviceId:device.deviceIdentifier withMethod:@"newDevice" createIfNeeded:FALSE];
+    if (fns != nil) {
+        for(FnUpdate fn in fns) {
+            fn();
+        }
+    }
+*/
     self.lastDeviceList = [[thermaLib deviceList] copy];
 
     CDVPluginResult* eventResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_OK messageAsArray:replies];

@@ -3,7 +3,7 @@ var exec = cordova_exec;
 
 var _module = "BlueThermThermaQ";
 
-var debugExec = false;
+var debugExec = true;
 if (debugExec) {
 	exec = function(success, error, module, method, args) {
 		console.log('Calling ' + method + ': ' + JSON.stringify(args));
@@ -110,15 +110,11 @@ function updateDevice(deviceResult, client) {
 	}
 	Object.assign(device, deviceResult);
 
-	if (device.connectionState != 'Connected') {
-		delete device.allReady;
-
-	} else if (device.connectionState == 'Connected' && device.ready == true && device.isConnected == true) {
-		device.allReady = true;
-		if (typeof device.$connect_success === 'function') {
-			device.$connect_success();
-			delete device.$connect_success;
-		}
+	// See if Connect_Success can be called ..
+	if (device.ready == true && typeof device.$connect_success === 'function') {
+		var $connect_success = device.$connect_success;
+		delete device.$connect_success;
+		$connect_success();
 	}
 
 	return device;

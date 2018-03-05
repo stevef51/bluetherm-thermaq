@@ -2,14 +2,13 @@
 //  TLDateStamp.h
 //  ThermaLib
 //
-//  Created by Chris Leversuch on 01/10/2016.
-//  Copyright © 2016 Brightec. All rights reserved.
+//  Copyright © 2016 Electronic Temperature Instruments Limited. All rights reserved.
 //
 
 #import <Foundation/Foundation.h>
 
 
-/// Represents a date as 3 seperate integers
+/// Represents a date as 3 separate integers
 @interface TLDateStamp : NSObject
 /// 2 digit year. Post-2000
 @property (assign, nonatomic) NSUInteger year;
@@ -19,7 +18,7 @@
 @property (assign, nonatomic) NSUInteger day;
 
 /**
- * Custom initialiser
+ * @brief Custom initialiser
  *
  * @param year Year
  * @param month Month

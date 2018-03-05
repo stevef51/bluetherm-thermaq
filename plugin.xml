@@ -14,9 +14,12 @@
     <header-file src="src/ios/Library/include/ThermaLib/ThermaLib.h"/>
     <header-file src="src/ios/Library/include/ThermaLib/TLDateStamp.h"/>
     <header-file src="src/ios/Library/include/ThermaLib/TLDevice.h"/>
+    <header-file src="src/ios/Library/include/ThermaLib/TLRange.h"/>
+    <header-file src="src/ios/Library/include/ThermaLib/TLRemoteSettings.h"/>
     <header-file src="src/ios/Library/include/ThermaLib/TLSensor.h"/>
     <header-file src="src/ios/Library/include/ThermaLib/TLSimDevice.h"/>
     <header-file src="src/ios/Library/include/ThermaLib/TLSimSensor.h"/>
+    <header-file src="src/ios/Library/include/ThermaLib/TLUtils.h"/>
     <source-file src="src/ios/BlueThermThermaQ.m" />
   </platform>
   <platform name="android">
