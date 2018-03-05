@@ -246,12 +246,13 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 }
 
 @interface BlueThermThermaQ : CDVPlugin {
+    BOOL _scanning;
 }
 
 @property (nonatomic, retain) ThermaLib* thermaLib;
 @property (nonatomic, retain) NSString* eventCallbackId;
 @property (nonatomic, retain) NSArray* lastDeviceList;
-@property (nonatomic, retain) NSMutableArray* scanDeviceList;
+//@property (nonatomic, retain) NSMutableArray* scanDeviceList;
 @property (nonatomic, retain) NSMutableDictionary* deviceCallbacks;
 
 - (void)pluginInitialize;
@@ -273,7 +274,12 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 
 @implementation BlueThermThermaQ
 
-@synthesize thermaLib, eventCallbackId, lastDeviceList, scanDeviceList, deviceCallbacks;
+@synthesize
+    thermaLib,
+    eventCallbackId,
+    lastDeviceList,
+//    scanDeviceList,
+    deviceCallbacks;
 
 -(void)pluginInitialize
 {
@@ -294,6 +300,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 
     self.thermaLib = [ThermaLib sharedInstance];
     self.deviceCallbacks = [[NSMutableDictionary alloc] init];
+    _scanning = false;
 }
 
 -(NSMutableArray*) queueForDeviceId:(NSString*) deviceId withMethod:(NSString*) method createIfNeeded:(BOOL) createIfNeeded
@@ -345,7 +352,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
     self.thermaLib = nil;
     self.eventCallbackId = nil;
     self.lastDeviceList = nil;
-    self.scanDeviceList = nil;
+//    self.scanDeviceList = nil;
     self.deviceCallbacks = nil;
 
     [super dispose];
@@ -417,10 +424,11 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(startScanTimeout) object:nil];
 
     [thermaLib stopDeviceScan];
+    _scanning = false;
 
     NSMutableArray* replies = [[NSMutableArray alloc] init];
     for(id<TLDevice> device in lastDeviceList) {
-        if (![scanDeviceList containsObject:device]) {
+        if (![[thermaLib deviceList] containsObject:device]) {
             // Device no longer visible, delete it ..
             NSMutableDictionary* msg = [[NSMutableDictionary alloc] init];
             [msg setObject: @"deviceDeleted" forKey: @"command"];
@@ -437,7 +445,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
             }
         }
     }
-    self.scanDeviceList = nil;
+//    self.scanDeviceList = nil;
 
     NSMutableArray* devices = [[NSMutableArray alloc] init];
     for(id<TLDevice> device in thermaLib.deviceList) {
@@ -475,17 +483,16 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
         // Delete all devices before scanning, this way we gaurantee we end up with a live list of visible devices
         // as opposed to a cached list
         self.lastDeviceList = [[thermaLib deviceList] copy];
-        self.scanDeviceList = [[NSMutableArray alloc] init];
         for(id<TLDevice> device in [thermaLib deviceList]) {
             // Dont forget connected devices
             if (![[thermaLib connectedDevices] containsObject:device]) {
                 [thermaLib removeDevice:device];
-            } else {
-                [scanDeviceList addObject:device];
             }
         }
 
+        // startDeviceScanWithTransport will clear the internal cache of BLE devices before scanning
         [thermaLib startDeviceScanWithTransport: TLTransportBluetoothLE];
+        _scanning = true;
 
         [self performSelector:@selector(startScanTimeout) withObject:nil afterDelay:[timeoutMilliseconds doubleValue] / 1000.0];
 
@@ -524,8 +531,8 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
     if (pluginResult == nil) {
         id<TLDevice> device = [thermaLib deviceWithIdentifier: deviceId];
         if (device == nil) {
-            // If we are scanning then its possible it has not been rediscovered yet
-            if (scanDeviceList != nil) {
+/*            // If we are scanning then its possible it has not been rediscovered yet
+            if (_scanning) {
                 __weak BlueThermThermaQ* weakSelf = self;
                 [self queueUpdate:^{
                     CDVPluginResult* pluginResult = nil;
@@ -542,9 +549,10 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
                     [weakSelf.commandDelegate sendPluginResult: pluginResult callbackId: command.callbackId];
                 } forDeviceId:deviceId withMethod:@"newDevice"];
             } else {
+*/
                 // Not scanning, not found ..
                 pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsString: @"Device not found"];
-            }
+//            }
         } else {
             [thermaLib connectToDevice: device];
 
@@ -713,7 +721,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
             [thermaLib removeDevice: device];
 
             // Simulate the Droid "onDeviceDeleted" event since iOS ThermaLib does not generate this event
-/*            [self.commandDelegate runInBackground: ^{
+            [self.commandDelegate runInBackground: ^{
                 NSMutableArray* replies = [[NSMutableArray alloc] init];
                 NSMutableDictionary* msg = [[NSMutableDictionary alloc] init];
                 [msg setObject: @"deviceDeleted" forKey: @"command"];
@@ -725,7 +733,6 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 
                 [self.commandDelegate sendPluginResult: eventResult callbackId: self.eventCallbackId];
             }];
-*/
             pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_OK];
         }
     }
@@ -902,7 +909,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 
     [replies addObject:msg];
 
-    [self.scanDeviceList addObject:device];
+//    [self.scanDeviceList addObject:device];
 
     NSArray* fns = [self queueForDeviceId:device.deviceIdentifier withMethod:@"newDevice" createIfNeeded:FALSE];
     if (fns != nil) {
