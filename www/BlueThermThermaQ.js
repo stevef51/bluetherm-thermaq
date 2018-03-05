@@ -3,7 +3,7 @@ var exec = cordova_exec;
 
 var _module = "BlueThermThermaQ";
 
-var debugExec = true;
+var debugExec = false;
 if (debugExec) {
 	exec = function(success, error, module, method, args) {
 		console.log('Calling ' + method + ': ' + JSON.stringify(args));
