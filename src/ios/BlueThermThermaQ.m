@@ -5,7 +5,7 @@
 #import "TLDevice.h"
 #import "TLSensor.h"
 
-#define PLUGIN_VERSION @"1.1.0"
+#define PLUGIN_VERSION @"1.1.1"
 
 typedef void (^FnUpdate)(void);
 
@@ -313,6 +313,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
         methods = [[NSMutableDictionary alloc] init];
         [deviceCallbacks setObject:methods forKey:deviceId];
     }
+
     NSMutableArray* fns = [methods objectForKey:method];
     if (fns == nil) {
         if (!createIfNeeded) {
@@ -436,7 +437,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 
             [replies addObject:msg];
 
-            // Finish off any connect requests made to it
+            // No longer visible, complete any "newDevice" connect requests (they will fail with "Device not found")
             NSArray* fns = [self queueForDeviceId:device.deviceIdentifier withMethod:@"newDevice" createIfNeeded:FALSE];
             if (fns != nil) {
                 for(FnUpdate fn in fns) {
@@ -480,19 +481,23 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
     }
 
     if (pluginResult == nil) {
-        // Delete all devices before scanning, this way we gaurantee we end up with a live list of visible devices
-        // as opposed to a cached list
         self.lastDeviceList = [[thermaLib deviceList] copy];
+
+        _scanning = true;
         for(id<TLDevice> device in [thermaLib deviceList]) {
-            // Dont forget connected devices
-            if (![[thermaLib connectedDevices] containsObject:device]) {
-                [thermaLib removeDevice:device];
+            switch([device connectionState]) {
+                case TLDeviceConnectionStateConnecting:
+                case TLDeviceConnectionStateConnected:
+                    break;
+
+                default:
+                    [thermaLib removeDevice:device];
+                    break;
             }
         }
 
         // startDeviceScanWithTransport will clear the internal cache of BLE devices before scanning
         [thermaLib startDeviceScanWithTransport: TLTransportBluetoothLE];
-        _scanning = true;
 
         [self performSelector:@selector(startScanTimeout) withObject:nil afterDelay:[timeoutMilliseconds doubleValue] / 1000.0];
 
@@ -531,7 +536,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
     if (pluginResult == nil) {
         id<TLDevice> device = [thermaLib deviceWithIdentifier: deviceId];
         if (device == nil) {
-/*            // If we are scanning then its possible it has not been rediscovered yet
+            // If we are scanning then its possible it has not been rediscovered yet
             if (_scanning) {
                 __weak BlueThermThermaQ* weakSelf = self;
                 [self queueUpdate:^{
@@ -549,10 +554,9 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
                     [weakSelf.commandDelegate sendPluginResult: pluginResult callbackId: command.callbackId];
                 } forDeviceId:deviceId withMethod:@"newDevice"];
             } else {
-*/
                 // Not scanning, not found ..
                 pluginResult = [CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsString: @"Device not found"];
-//            }
+            }
         } else {
             [thermaLib connectToDevice: device];
 

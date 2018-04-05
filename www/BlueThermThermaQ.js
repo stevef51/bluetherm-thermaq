@@ -3,17 +3,23 @@ var exec = cordova_exec;
 
 var _module = "BlueThermThermaQ";
 
+function log(msg) {
+	var dt = new Date();
+	msg = dt.toTimeString() + ' - ' + msg;
+	console.log(msg);
+}
+
 var debugExec = false;
 if (debugExec) {
 	exec = function(success, error, module, method, args) {
-		console.log('Calling ' + method + ': ' + JSON.stringify(args));
+		log('Calling ' + method + ': ' + JSON.stringify(args));
 		cordova_exec(function(result) {
-			console.log('Success ' + method + ': ' + JSON.stringify(result));
+			log('Success ' + method + ': ' + JSON.stringify(result));
 			if (success) {
 				success(result);
 			}
 		}, function(result) {
-			console.log('Error ' + method + ': ' + JSON.stringify(result));
+			log('Error ' + method + ': ' + JSON.stringify(result));
 			if (error) {
 				error(result);
 			}
