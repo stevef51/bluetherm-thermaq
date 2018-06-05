@@ -106,12 +106,17 @@ Device.prototype.configure = function(options, success, error) {
 
 function Client() {
 	this.devices = Object.create(null);
+    this._cachedDevices = Object.create(null);      // Cache all devices seen so we never have 2 copies referencing same Id
 }
 
 function updateDevice(deviceResult, client) {
 	var device = client.devices[deviceResult.id];
 	if (device === undefined) {
-		device = new Device(deviceResult, client);
+        device = client._cachedDevices[deviceResult.id];
+        if (device === undefined) {
+		    device = new Device(deviceResult, client);
+            client._cachedDevices[deviceResult.id] = device;
+        }
 		client.devices[deviceResult.id] = device;
 	}
 	Object.assign(device, deviceResult);

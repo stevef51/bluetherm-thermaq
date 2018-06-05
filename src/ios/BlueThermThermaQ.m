@@ -5,7 +5,7 @@
 #import "TLDevice.h"
 #import "TLSensor.h"
 
-#define PLUGIN_VERSION @"1.1.1"
+#define PLUGIN_VERSION @"1.1.2"
 
 typedef void (^FnUpdate)(void);
 
@@ -484,7 +484,7 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
         self.lastDeviceList = [[thermaLib deviceList] copy];
 
         _scanning = true;
-        for(id<TLDevice> device in [thermaLib deviceList]) {
+        for(id<TLDevice> device in self.lastDeviceList) {
             switch([device connectionState]) {
                 case TLDeviceConnectionStateConnecting:
                 case TLDeviceConnectionStateConnected:
