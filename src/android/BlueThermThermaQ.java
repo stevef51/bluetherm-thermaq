@@ -27,7 +27,7 @@ import static uk.co.etiltd.thermalib.Sensor.NO_VALUE;
 * This class echoes a string called from JavaScript.
 */
 public class BlueThermThermaQ extends CordovaPlugin implements ThermaLib.ClientCallbacks {
-	private final String PLUGIN_VERSION = "1.1.2";
+	private final String PLUGIN_VERSION = "1.1.3";
 
 	private ThermaLib _thermaLib;
 	private Object _registerHandle;

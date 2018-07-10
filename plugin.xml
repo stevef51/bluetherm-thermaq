@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<plugin id="BlueThermThermaQ" version="1.1.2" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+<plugin id="BlueThermThermaQ" version="1.1.3" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
   <name>BlueThermThermaQ</name>
   <js-module name="BlueThermThermaQ" src="www/BlueThermThermaQ.js">
     <clobbers target="cordova.plugins.BlueThermThermaQ" />
@@ -31,7 +31,7 @@
     <config-file parent="/*" target="AndroidManifest.xml">
     </config-file>
     <framework src="src/android/thermalib.gradle" custom="true" type="gradleReference" />
-    <resource-file src="src/android/thermalib-release.aar" target="libs/thermalib-release.aar" />
+    <lib-file src="src/android/thermalib-release.aar" />
     <source-file src="src/android/BlueThermThermaQ.java" target-dir="src/BlueThermThermaQ" />
   </platform>
 </plugin>
