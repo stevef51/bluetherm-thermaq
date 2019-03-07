@@ -173,23 +173,26 @@ NSMutableDictionary* MakeJSONSensor(id<TLSensor> sensor)
 
     NSString* name = [sensor name];
     if (name != nil && name.length)
-    [info setObject: name forKey: @"name"];
+        [info setObject: name forKey: @"name"];
 
     [info setObject: stringFromTLSensorType(sensor.type) forKey: @"type"];
-    [info setObject: [NSNumber numberWithDouble: sensor.reading] forKey: @"reading"];
-    if (sensor.highAlarmEnabled) {
+    if (!isnan(sensor.reading) && !isinf(sensor.reading)) {
+        [info setObject: [NSNumber numberWithDouble: sensor.reading] forKey: @"reading"];
+    }
+    if (sensor.highAlarmEnabled && (!isnan(sensor.highAlarm) && !isinf(sensor.highAlarm))) {
         [info setObject: [NSNumber numberWithDouble: sensor.highAlarm] forKey: @"highAlarm"];
     } else {
         [info setObject: [NSNull null] forKey: @"highAlarm"];
     }
-    if (sensor.lowAlarmEnabled) {
+    if (sensor.lowAlarmEnabled && (!isnan(sensor.lowAlarm) && !isinf(sensor.lowAlarm))) {
         [info setObject: [NSNumber numberWithDouble: sensor.lowAlarm] forKey: @"lowAlarm"];
     } else {
         [info setObject: [NSNull null] forKey: @"lowAlarm"];
     }
     [info setObject: [NSNumber numberWithBool: sensor.fault] forKey: @"fault"];
-    [info setObject: [NSNumber numberWithDouble: sensor.trimValue] forKey: @"trimValue"];
-
+    if (!isnan(sensor.trimValue) && !isinf(sensor.trimValue)) {
+        [info setObject: [NSNumber numberWithDouble: sensor.trimValue] forKey: @"trimValue"];
+    }
     return info;
 }
 
@@ -199,33 +202,33 @@ NSMutableDictionary* MakeJSONDevice(id<TLDevice> device)
 
     [info setObject: device.deviceIdentifier forKey: @"id"];
     if (device.deviceName != nil && device.deviceName.length)
-    [info setObject: device.deviceName forKey: @"name"];
+        [info setObject: device.deviceName forKey: @"name"];
     [info setObject: [NSNumber numberWithBool: device.ready] forKey: @"ready"];
     [info setObject: [NSNumber numberWithBool: device.isConnected] forKey: @"isConnected"];
 
     if (device.serialNumber != nil && device.serialNumber.length)
-    [info setObject: device.serialNumber forKey: @"serialNumber"];
+        [info setObject: device.serialNumber forKey: @"serialNumber"];
 
     [info setObject: stringFromTLDeviceConnectionState(device.connectionState) forKey: @"connectionState"];
     [info setObject: [NSNumber numberWithInteger: device.batteryLevel] forKey: @"batteryLevel"];
 
     if (device.modelNumber != nil && device.modelNumber.length)
-    [info setObject: device.modelNumber forKey: @"modelNumber"];
+        [info setObject: device.modelNumber forKey: @"modelNumber"];
 
     if (device.manufacturerName != nil && device.manufacturerName.length)
-    [info setObject: device.manufacturerName forKey: @"manufacturerName"];
+        [info setObject: device.manufacturerName forKey: @"manufacturerName"];
 
     if (device.rssi != nil)
-    [info setObject: device.rssi forKey: @"rssi"];
+        [info setObject: device.rssi forKey: @"rssi"];
 
     if (device.softwareRevision != nil && device.softwareRevision.length)
-    [info setObject: device.softwareRevision forKey: @"softwareRevision"];
+        [info setObject: device.softwareRevision forKey: @"softwareRevision"];
 
     if (device.hardwareVersion != nil && device.hardwareVersion.length)
-    [info setObject: device.hardwareVersion forKey: @"hardwareRevision"];       // Droid uses "hardwareRevision"
+        [info setObject: device.hardwareVersion forKey: @"hardwareRevision"];       // Droid uses "hardwareRevision"
 
     if (device.firmwareRevision != nil && device.firmwareRevision.length)
-    [info setObject: device.firmwareRevision forKey: @"firmwareRevision"];
+        [info setObject: device.firmwareRevision forKey: @"firmwareRevision"];
 
     [info setObject: [NSNumber numberWithInteger: device.measurementInterval * 1000] forKey: @"measurementMilliseconds"];
     [info setObject: [NSNumber numberWithInteger: device.autoOffInterval * 60] forKey: @"autoOffSeconds"];
